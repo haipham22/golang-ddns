@@ -1,0 +1,9 @@
+cloudflare:
+  api:
+    id: GT5vxxxxxxxxxxxxxxxxxxxx
+  domain:
+    - name: example.dev
+      zone_identifier: xxxxxxxxxxxxxxxxxxxxxxxxx
+      record_name:
+        - name: nguyenvana.example.dev
+        - name: nguyenvanb.example.dev

@@ -32,5 +32,5 @@ go mod tidy
 ### Run dev
 
 ```shell
-go run main.go ddns
+go run main.go update_dns
 ```

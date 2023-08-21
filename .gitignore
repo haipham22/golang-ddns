@@ -137,3 +137,4 @@ Temporary Items
 
 # Custom project ignore
 .env
+ddns.yaml
