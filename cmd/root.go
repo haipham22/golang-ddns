@@ -6,12 +6,18 @@ import (
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+
+	"goland-ddns/pkg/config"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "paperback-utils",
-	Short: "paperback convert utils",
+	Use:   "ddns",
+	Short: "Update cloudflare ddns for homelab",
 }
+
+var (
+	cfgFile string
+)
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -21,11 +27,20 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize()
+	cobra.OnInitialize(initDependency)
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $APPLICATION_DIR/ddns.yaml)")
 }
 
 func initDependency() {
+	initConfig()
 	initLog()
+}
+
+func initConfig() {
+	if err := config.LoadConfig(cfgFile); err != nil {
+		panic("Can't load config from environment")
+	}
 }
 
 func initLog() {

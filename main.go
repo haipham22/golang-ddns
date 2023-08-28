@@ -1,6 +1,6 @@
 package main
 
-import "paperback-vbook-converter/cmd"
+import "goland-ddns/cmd"
 
 func main() {
 	cmd.Execute()
