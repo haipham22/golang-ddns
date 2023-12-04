@@ -20,7 +20,7 @@ type DNSRequestBody struct {
 	Ttl     int      `json:"ttl"`
 }
 
-func (c *CloudflareAPI) CreateDNSRecord(zone string, dns DNSRequestBody) (*DetailDNSRecordResponse, error) {
+func (c *API) CreateDNSRecord(zone string, dns DNSRequestBody) (*DetailDNSRecordResponse, error) {
 	bytes, err := c.request.Post(http.RequestParams{
 		URL:    fmt.Sprintf("%s/zones/%s/dns_records", cloudflareBaseEndpoint, zone),
 		Header: c.commonHeader(),
@@ -40,7 +40,7 @@ func (c *CloudflareAPI) CreateDNSRecord(zone string, dns DNSRequestBody) (*Detai
 	return response, nil
 }
 
-func (c *CloudflareAPI) UpdateDNSRecord(zone string, identifier string, dns DNSRequestBody) (*DetailDNSRecordResponse, error) {
+func (c *API) UpdateDNSRecord(zone string, identifier string, dns DNSRequestBody) (*DetailDNSRecordResponse, error) {
 	bytes, err := c.request.Patch(http.RequestParams{
 		URL:    fmt.Sprintf("%s/zones/%s/dns_records/%s", cloudflareBaseEndpoint, zone, identifier),
 		Header: c.commonHeader(),
@@ -62,7 +62,7 @@ func (c *CloudflareAPI) UpdateDNSRecord(zone string, identifier string, dns DNSR
 
 // DetailDNSRecordResponse information about a DNS record
 type DetailDNSRecordResponse struct {
-	Errors   []ErrorDNSData      `json:"errors"`
+	Errors   []ErrorResponseData `json:"errors"`
 	Result   DetailDNSRecordData `json:"result"`
 	Success  bool                `json:"success"`
 	Messages []interface{}       `json:"messages"`
@@ -70,7 +70,7 @@ type DetailDNSRecordResponse struct {
 
 // ListDNSRecordResponse information about a DNS record
 type ListDNSRecordResponse struct {
-	Errors   []ErrorDNSData        `json:"errors"`
+	Errors   []ErrorResponseData   `json:"errors"`
 	Result   []DetailDNSRecordData `json:"result"`
 	Success  bool                  `json:"success"`
 	Messages []interface{}         `json:"messages"`
@@ -100,14 +100,8 @@ type DetailDNSRecordData struct {
 	ModifiedOn time.Time     `json:"modified_on"` // The last time the DNS record was modified.
 }
 
-// ErrorDNSData provide error in response api
-type ErrorDNSData struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
 // SearchForDNSRecord returns detailed information about a specific DNS record inside a specific zone.
-func (c *CloudflareAPI) SearchForDNSRecord(zone string, dns string) (*ListDNSRecordResponse, error) {
+func (c *API) SearchForDNSRecord(zone string, dns string) (*ListDNSRecordResponse, error) {
 
 	bytes, err := c.request.Get(http.RequestParams{
 		URL:    fmt.Sprintf("%s/zones/%s/dns_records?name=%s", cloudflareBaseEndpoint, zone, dns),
@@ -137,4 +131,8 @@ func (c *CloudflareAPI) SearchForDNSRecord(zone string, dns string) (*ListDNSRec
 	}
 
 	return response, nil
+}
+
+func (c *API) AllDnsByZone(zone string) (*ListDNSRecordResponse, error) {
+
 }

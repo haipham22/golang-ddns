@@ -20,14 +20,27 @@ const (
 )
 
 type UpdateDns struct {
-	logger        *zap.SugaredLogger
-	cloudflareAPI *cloudflare.CloudflareAPI
+	log           *zap.SugaredLogger
+	cloudflareAPI *cloudflare.API
 	requestClient http.APIClient
 }
 
-func NewUpdateDns(logger *zap.SugaredLogger, cloudflareAPI *cloudflare.CloudflareAPI, requestClient http.APIClient) *UpdateDns {
+type UpdatedDomainInfo struct {
+	Name         string
+	ZoneIdentity string
+	DNS          []*DomainDNSInfo
+}
+
+type DomainDNSInfo struct {
+	Name      string
+	TTL       int
+	UseProxy  bool
+	CurrentIP string
+}
+
+func NewUpdateDns(logger *zap.SugaredLogger, cloudflareAPI *cloudflare.API, requestClient http.APIClient) *UpdateDns {
 	return &UpdateDns{
-		logger:        logger,
+		log:           logger,
 		cloudflareAPI: cloudflareAPI,
 		requestClient: requestClient,
 	}
@@ -39,7 +52,7 @@ func (u *UpdateDns) Run() error {
 		return err
 	}
 
-	u.logger.Infof("current ip address is: %s", currentIP)
+	u.log.Infof("current ip address is: %s", currentIP)
 
 	var wg sync.WaitGroup
 
@@ -79,16 +92,54 @@ func (u *UpdateDns) checkCurrentIP() (string, error) {
 	return currentIP, nil
 }
 
-func (u *UpdateDns) mappingAllDomainInfo(domain []config.Domain) {
+func (u *UpdateDns) mappingAllDomainInfo(domains []config.Domain) *hashset.Set {
 	mapAllDomainConfig := hashset.New()
+
+	listZones, err := u.cloudflareAPI.ListZones()
+	if err != nil {
+		u.log.Errorf("c.cloudflareAPI.ListZone error when get all zone, detail: %s", err)
+		return nil
+	}
+
+	for _, domain := range domains {
+
+		var (
+			zoneIdentifier string
+			dns            []*DomainDNSInfo
+		)
+
+		if domain.ZoneIdentifier == "" {
+			for _, results := range listZones.Result {
+				if domain.Name == results.Name {
+					zoneIdentifier = results.Id
+					break
+				}
+			}
+		}
+
+		u.cloudflareAPI.SearchForDNSRecord()
+
+		if len(domain.DNS) == 0 {
+			for _, dns := range domain.DNS {
+			}
+		}
+
+		mapAllDomainConfig.Add(UpdatedDomainInfo{
+			Name:         domain.Name,
+			ZoneIdentity: zoneIdentifier,
+			DNS:          dns,
+		})
+	}
+
+	return mapAllDomainConfig
 }
 
 func (u *UpdateDns) checkAndUpdateByDomain(domain config.Domain, ip string) {
 	if len(domain.DNS) == 0 {
-		u.logger.Infof("c.checkAndUpdateByDomain: empty DNS list, skip update...")
+		u.log.Infof("c.checkAndUpdateByDomain: empty DNS list, skip update...")
 		return
 	}
-	u.logger.Infof("start check from zoneID: %s", domain.ZoneIdentifier)
+	u.log.Infof("start check from zoneID: %s", domain.ZoneIdentifier)
 
 	for _, dns := range domain.DNS {
 		dnsRecord, err := u.seekCurrentDNS(domain.ZoneIdentifier, dns.Name)
@@ -115,7 +166,7 @@ func (u *UpdateDns) seekCurrentDNS(domain string, dns string) (*cloudflare.Detai
 }
 
 func (u *UpdateDns) shouldCreateNewDNSRecord(ip, zone string, dns config.DNS) {
-	u.logger.Infof("c.shouldCreateNewDnsRecord: create new dns %#v for zone %s with ip %s", dns, zone, ip)
+	u.log.Infof("c.shouldCreateNewDnsRecord: create new dns %#v for zone %s with ip %s", dns, zone, ip)
 	ttl := dns.TTL
 
 	if ttl <= 0 {
@@ -132,14 +183,14 @@ func (u *UpdateDns) shouldCreateNewDNSRecord(ip, zone string, dns config.DNS) {
 	}
 	_, err := u.cloudflareAPI.CreateDNSRecord(zone, requestBody)
 	if err != nil {
-		u.logger.Errorf("c.shouldCreateNewDnsRecord: error when create new dns record %+v, maybe try create manual, detail %s", requestBody, err)
+		u.log.Errorf("c.shouldCreateNewDnsRecord: error when create new dns record %+v, maybe try create manual, detail %s", requestBody, err)
 		return
 	}
-	u.logger.Infof("Create new A record: %s, zoneId: %s, ip: %s", dns.Name, zone, ip)
+	u.log.Infof("Create new A record: %s, zoneId: %s, ip: %s", dns.Name, zone, ip)
 }
 
 func (u *UpdateDns) updateDNSRecord(ip, zone string, dnsRecord *cloudflare.DetailDNSRecordData, dns config.DNS) {
-	u.logger.Infof("c.updateDNSRecord: update dns %#v for zone %s with ip %s", dns, zone, ip)
+	u.log.Infof("c.updateDNSRecord: update dns %#v for zone %s with ip %s", dns, zone, ip)
 	ttl := dns.TTL
 
 	if ttl <= 0 {
@@ -156,8 +207,8 @@ func (u *UpdateDns) updateDNSRecord(ip, zone string, dnsRecord *cloudflare.Detai
 	}
 	_, err := u.cloudflareAPI.UpdateDNSRecord(zone, dnsRecord.ZoneID, requestBody)
 	if err != nil {
-		u.logger.Errorf("c.shouldCreateNewDnsRecord: error when create new dns dnsRecord %+v, maybe try create manual, detail %s", requestBody, err)
+		u.log.Errorf("c.shouldCreateNewDnsRecord: error when create new dns dnsRecord %+v, maybe try create manual, detail %s", requestBody, err)
 		return
 	}
-	u.logger.Infof("Update for A record: %s, zoneId: %s, newIP: %s, oldIP: %s", dns.Name, zone, ip, dnsRecord.Content)
+	u.log.Infof("Update for A record: %s, zoneId: %s, newIP: %s, oldIP: %s", dns.Name, zone, ip, dnsRecord.Content)
 }

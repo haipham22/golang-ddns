@@ -6,15 +6,15 @@ import (
 	"goland-ddns/pkg/http"
 )
 
-type CloudflareAPI struct {
+type API struct {
 	logger  *zap.SugaredLogger
 	request http.APIClient
 }
 
 // NewCloudflareClient create new api connection
-func NewCloudflareClient(logger *zap.SugaredLogger, client http.APIClient) (*CloudflareAPI, error) {
+func NewCloudflareClient(logger *zap.SugaredLogger, client http.APIClient) (*API, error) {
 
-	return &CloudflareAPI{
+	return &API{
 		logger:  logger,
 		request: client,
 	}, nil
