@@ -7,3 +7,6 @@ cloudflare:
       record_name:
         - name: nguyenvana.example.dev
         - name: nguyenvanb.example.dev
+
+
+seekIPURL: "https://ipv4.icanhazip.com/"

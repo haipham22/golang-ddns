@@ -10,7 +10,7 @@ import (
 
 type Domain struct {
 	Name           string
-	ZoneIdentifier string `mapstructure:"zone_identifier" validate:"required"`
+	ZoneIdentifier string `mapstructure:"zone_identifier"`
 	DNS            []DNS  `mapstructure:"record_name" validate:"required"`
 }
 
@@ -27,6 +27,7 @@ type EnvConfigMap struct {
 		} `mapstructure:"api"`
 		Domain []Domain `mapstructure:"Domain" validate:"required"`
 	} `mapstructure:"cloudflare"`
+	SeekIPURL string `mapstructure:"seek_ip_url"`
 }
 
 // ENV is global variable for using config in other place

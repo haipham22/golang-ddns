@@ -3,15 +3,20 @@ package update_dns
 import (
 	"bytes"
 	"fmt"
-	errorsLib "github.com/pkg/errors"
 	"net"
 	"sync"
 
+	"github.com/emirpasic/gods/sets/hashset"
+	errorsLib "github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	"goland-ddns/pkg/cloudflare"
 	"goland-ddns/pkg/config"
 	"goland-ddns/pkg/http"
+)
+
+const (
+	defaultSeekIPUrl = "https://ipv4.icanhazip.com/"
 )
 
 type UpdateDns struct {
@@ -52,8 +57,12 @@ func (u *UpdateDns) Run() error {
 }
 
 func (u *UpdateDns) checkCurrentIP() (string, error) {
+	seekIPUrl := defaultSeekIPUrl
+	if config.ENV.SeekIPURL != "" {
+		seekIPUrl = config.ENV.SeekIPURL
+	}
 	responseByteArr, err := u.requestClient.Get(http.RequestParams{
-		URL: "https://ipv4.icanhazip.com/",
+		URL: seekIPUrl,
 	})
 	if err != nil {
 		return "", fmt.Errorf("error while connect to url, detail %s", err)
@@ -68,6 +77,10 @@ func (u *UpdateDns) checkCurrentIP() (string, error) {
 	}
 
 	return currentIP, nil
+}
+
+func (u *UpdateDns) mappingAllDomainInfo(domain []config.Domain) {
+	mapAllDomainConfig := hashset.New()
 }
 
 func (u *UpdateDns) checkAndUpdateByDomain(domain config.Domain, ip string) {
